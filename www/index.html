@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<title>there is</title>
+<style>
+
+body {
+	margin : 0px;
+	background : black;
+	color : white;
+}
+
+</style>
+
+<!-- cordova.js is served from localhost to ensure the correct version -->
+<script src="http://localhost/cordova.js"></script>
+<script src="/components/steroids-js/steroids.js"></script>
+<script src="jquery.js"></script>
+<script src="index.js"></script>
+<script src="utils.js"></script>
+<script src="wordcloud2.js"></script>
+
+</head>
+<body>
+<script>
+
+///
+
+g_onGesture = null
+function initGestures() {
+	var threshold = $(window).width() / 5
+
+    var start = null
+
+    function getPos(e) {
+    	var t = e.touches[0]
+    	return [t.pageX, t.pageY]
+    }
+
+    document.addEventListener('touchstart', function(e) {
+    	start = getPos(e)
+    }, false)
+    document.addEventListener('touchmove', function(e) {
+    	if (!start) return
+        e.preventDefault()
+    	var pos = getPos(e)
+
+    	var d = sub(pos, start)
+    	if (mag(d) > threshold) {
+    		start = null
+	        var angle = Math.atan2(-d[1], d[0])
+	        if (angle < 0) angle = tau + angle
+	        angle = Math.floor((angle + tau/16) / (tau/8)) % 8
+	    	if (g_onGesture)
+	    		g_onGesture(angle)
+    	}
+    }, false)
+    document.addEventListener('touchend', function(e) {
+        // e.preventDefault()
+    }, false)
+}
+
+function drawWordCloud(d, counts) {
+	var w = d.width()
+	var h = d.height()
+    var c = $('<canvas/>').attr('width', w).attr('height', h)
+
+    var big = Math.min(w, h) / 8
+    var small = 6
+    var min = _.min(counts)
+    var max = _.max(counts)
+    sizes = _.map(counts, function (x) {
+        return _.lerp(0, small, max, big, x)
+    })
+    WordCloud(c[0], {
+        list : _.sort(_.pairs(sizes), function (x) { return -x[1] }),
+        minRotation : tau / 4,
+        maxRotation : tau / 4,
+        rotateRatio : .5,
+        color : 'random-light',
+        backgroundColor : 'rgb(0,0,0)'
+    })
+
+    d.empty().append(c)
+}
+
+function drawMain(counts) {
+	var w = $(window).width()
+	var h = $(window).height()
+
+    var words = [
+        'other', 'seeing', 'pleasure',
+        'thinking', '', 'hearing',
+        'displeasure', 'feeling', 'smelling-tasting'
+    ]
+
+    var directions = ['↖', '↑', '↗', '←', '', '→', '↙', '↓', '↘']
+
+	function tr(valign) {
+		return $('<tr height="' + 100/3 + '%" valign="' + valign + '"/>')
+	}
+	function td(align) {
+		return $('<td width="' + 100/3 + '%" align="' + align + '"/>')
+	}
+
+    var dirs = []
+	function dir(i) {
+		var top = words[i]
+		var bottom = directions[i]
+		if (i > 5) {
+			var x = top
+			top = bottom
+			bottom = x
+		}
+		var d = $('<div style="color:grey"/>').append($('<div/>').text(top)).append($('<div/>').text(bottom))
+		dirs.push(d)
+		return d
+	}
+
+	function drawWC() {
+        setTimeout(function () {
+        	drawWordCloud(wordCloudDiv, counts)
+        }, 0)
+	}
+	drawWC()
+
+	g_onGesture = function (dir) {
+		var i = [5, 2, 1, 0, 3, 6, 7, 8][dir]
+
+        var word = words[i]
+        _.bagAdd(counts, word)
+
+        var d = dirs[i]
+        var oldColor = d.css('color')
+        d.css('color', 'white')
+        setTimeout(function () {
+        	d.css('color', oldColor)
+        }, 100)
+
+        drawWC()
+
+        navigator.notification.vibrate(100)
+	}
+
+	var main = $('<div style="position:absolute;left:0px;top:0px;width:' + w + 'px;height:' + h + 'px"/>')
+
+	var wordCloudDiv = $('<div style="width:' + w*.75 + 'px;height:' + h*.8 + 'px"/>')
+	main.append(center(wordCloudDiv))
+	main.
+		append($('<table style="position:absolute;left:0px;top:0px;width:100%;height:100%"/>').
+			append(tr('top').
+				append(td('left').append(dir(0))).
+				append(td('center').append(dir(1))).
+				append(td('right').append(dir(2)))
+			).
+			append(tr('middle').
+				append(td('left').append(dir(3))).
+				append(td('center').append(dir(4))).
+				append(td('right').append(dir(5)))
+			).
+			append(tr('bottom').
+				append(td('left').append(dir(6))).
+				append(td('center').append(dir(7))).
+				append(td('right').append(dir(8)))
+			)
+		)
+	return main
+}
+
+$(function () {
+	initGestures()
+	var counts = {}
+	function onResize() {
+		$('body').empty().append(drawMain(counts))
+	}
+	onResize()
+	$(window).resize(onResize)
+})
+
+</script>
+
+</body>
+</html>
