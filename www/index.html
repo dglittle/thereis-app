@@ -91,7 +91,7 @@ function drawMain(counts) {
 	var h = $(window).height()
 
     var words = [
-        'other', 'seeing', 'pleasure',
+        'emotion', 'seeing', 'pleasure',
         'thinking', '', 'hearing',
         'displeasure', 'feeling', 'smelling-tasting'
     ]
@@ -107,14 +107,8 @@ function drawMain(counts) {
 
     var dirs = []
 	function dir(i) {
-		var top = words[i]
-		var bottom = directions[i]
-		if (i > 5) {
-			var x = top
-			top = bottom
-			bottom = x
-		}
-		var d = $('<div style="color:grey"/>').append($('<div/>').text(top)).append($('<div/>').text(bottom))
+		var word = words[i]
+		var d = $('<div/>').append(word ? $('<img width="100px"/>').attr('src', '/' + word + '.png') : $('<div/>'))
 		dirs.push(d)
 		return d
 	}
@@ -133,10 +127,9 @@ function drawMain(counts) {
         _.bagAdd(counts, word)
 
         var d = dirs[i]
-        var oldColor = d.css('color')
-        d.css('color', 'white')
+        d.css('opacity', '0.5')
         setTimeout(function () {
-        	d.css('color', oldColor)
+	        d.css('opacity', '1')
         }, 100)
 
         drawWC()
@@ -146,10 +139,12 @@ function drawMain(counts) {
 
 	var main = $('<div style="position:absolute;left:0px;top:0px;width:' + w + 'px;height:' + h + 'px"/>')
 
-	var wordCloudDiv = $('<div style="width:' + w*.75 + 'px;height:' + h*.8 + 'px"/>')
+	var wordCloudDivX = .75
+	var wordCloudDivY = .8
+	var wordCloudDiv = $('<div style="width:' + w*wordCloudDivX + 'px;height:' + h*wordCloudDivY + 'px;"/>')
 	main.append(center(wordCloudDiv))
 	main.
-		append($('<table style="position:absolute;left:0px;top:0px;width:100%;height:100%"/>').
+		append($('<table style="position:absolute;left:0px;top:0px;width:100%;height:100%;"/>').
 			append(tr('top').
 				append(td('left').append(dir(0))).
 				append(td('center').append(dir(1))).
